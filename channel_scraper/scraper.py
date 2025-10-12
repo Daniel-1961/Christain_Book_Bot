@@ -1,5 +1,4 @@
 # channel_scraper/scraper.py
-
 from telethon.sync import TelegramClient
 from telethon.tl.types import MessageMediaDocument, DocumentAttributeFilename
 import requests
@@ -7,6 +6,10 @@ import os
 from dotenv import load_dotenv
 from database.db import insert_book
 from database.models import create_tables
+from database.db import book_exists
+import time
+from telethon.errors import FloodWaitError
+
 
 # -------------------------------
 # 🔹 Load Environment Variables
@@ -16,7 +19,7 @@ API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ARCHIVE_CHAT_ID= os.getenv("ARCHIVE_CHAT_ID")
+ARCHIVE_CHAT_ID= int(os.getenv("ARCHIVE_CHAT_ID"))
 
 # -------------------------------
 # 🔹 Initialize Directories and DB
@@ -52,46 +55,122 @@ CATEGORY_RULES = {
     "grace": "Grace & Salvation",
     "faith": "Faith & Justification",
     "worship": "Worship & Liturgy",
-    "reformation": "Reformation History",
+    "reformation": "Reformation",
     "spiritual": "Spiritual Growth",
     "gospel": "Gospel Studies",
     "discipleship": "Discipleship",
+    "sola":"Sola"
 }
 
 AUTHOR_RULES = {
+    # 🏛️ Early Church Fathers
+    "augustine": "Augustine of Hippo",
+    "athanasius": "Athanasius of Alexandria",
+    "jerome": "Jerome",
+    "chrysostom": "John Chrysostom",
+    "ambrose": "Ambrose of Milan",
+    "gregory": "Gregory the Great",
+    "irenaues": "Irenaeus of Lyons",
+    "tertullian": "Tertullian",
+    "origen": "Origen of Alexandria",
+    "clement": "Clement of Rome",
+
+    # ⛪ Medieval & Scholastic Thinkers
+    "anselm": "Anselm of Canterbury",
+    "aquinas": "Thomas Aquinas",
+    "bernard": "Bernard of Clairvaux",
+    "bonaventure": "Bonaventure",
+    "lombard": "Peter Lombard",
+    "scotus": "John Duns Scotus",
+    "ockham": "William of Ockham",
+    "siena": "Catherine of Siena",
+    "norwich": "Julian of Norwich",
+
+    # 📜 Reformation Era
     "calvin": "John Calvin",
     "luther": "Martin Luther",
-    "spurgeon": "Charles Spurgeon",
-    "packer": "J.I. Packer",
-    "sproul": "R.C. Sproul",
-    "pink": "A.W. Pink",
-    "berkhof": "Louis Berkhof",
-    "bavinck": "Herman Bavinck",
-    "kuper": "Abraham Kuyper",
-    "owen": "John Owen",
-    "watson": "Thomas Watson",
-    "bunyan": "John Bunyan",
-    "ferguson": "Sinclair Ferguson",
-    "macarthur": "John MacArthur",
-    "lloyd": "Martyn Lloyd-Jones",
-    "piper": "John Piper",
-    "ryle": "J.C. Ryle",
-    "stott": "John Stott",
-    "carson": "D.A. Carson",
-    "edwards": "Jonathan Edwards",
-    "warfield": "B.B. Warfield",
-    "hodge": "Charles Hodge",
-    "turretin": "Francis Turretin",
+    "zwingli": "Ulrich Zwingli",
     "beza": "Theodore Beza",
-    "murray": "John Murray",
-    "vos": "Geerhardus Vos",
-    "ridderbos": "Herman Ridderbos",
-    "boston": "Thomas Boston",
+    "knox": "John Knox",
+    "bullinger": "Heinrich Bullinger",
+
+    # 📖 Puritans & Post-Reformation Divines
     "perkins": "William Perkins",
-    "goodwin": "Thomas Goodwin",
     "sibbes": "Richard Sibbes",
+    "goodwin": "Thomas Goodwin",
+    "watson": "Thomas Watson",
+    "brooks": "Thomas Brooks",
+    "owen": "John Owen",
+    "bunyan": "John Bunyan",
+    "boston": "Thomas Boston",
     "brakel": "Wilhelmus à Brakel",
     "gill": "John Gill",
+    "turretin": "Francis Turretin",
+    "baxter": "Richard Baxter",
+    "edwards": "Jonathan Edwards",
+
+    # 🧠 19th–20th Century Reformed Theologians
+    "spurgeon": "Charles H. Spurgeon",
+    "warfield": "B.B. Warfield",
+    "hodge": "Charles Hodge",
+    "bavinck": "Herman Bavinck",
+    "berkhof": "Louis Berkhof",
+    "kuper": "Abraham Kuyper",
+    "vos": "Geerhardus Vos",
+    "murray": "John Murray",
+    "lloyd": "Martyn Lloyd-Jones",
+    "packer": "J.I. Packer",
+    "stott": "John Stott",
+    "sproul": "R.C. Sproul",
+    "macarthur": "John MacArthur",
+    "ferguson": "Sinclair Ferguson",
+    "boice": "James Montgomery Boice",
+    "pink": "A.W. Pink",
+    "henry": "Matthew Henry",
+    "hodge_a": "A.A. Hodge",
+    "machen": "J. Gresham Machen",
+    "van_til": "Cornelius Van Til",
+    "frame": "John Frame",
+    "horton": "Michael Horton",
+    "beeke": "Joel Beeke",
+    "dever": "Mark Dever",
+    "ryle": "J.C. Ryle",
+
+    # 📚 Modern Evangelical Scholars & Commentators
+    "carson": "D.A. Carson",
+    "moo": "Douglas Moo",
+    "morris": "Leon Morris",
+    "bruce": "F.F. Bruce",
+    "fee": "Gordon Fee",
+    "osborne": "Grant R. Osborne",
+    "grudem": "Wayne Grudem",
+    "wright": "N.T. Wright",
+    "barclay": "William Barclay",
+    "wiersbe": "Warren Wiersbe",  # "Be Series"
+    "hughes": "R. Kent Hughes",
+    "schreiner": "Thomas R. Schreiner",
+    "powlison": "David Powlison",
+    "tripp": "Paul David Tripp",
+    "bridges": "Jerry Bridges",
+    "newheiser": "Jim Newheiser",
+
+    # 🔥 Contemporary Reformed & Evangelical Preachers
+    "piper": "John Piper",
+    "keller": "Tim Keller",
+    "begg": "Alistair Begg",
+    "lawson": "Steven J. Lawson",
+    "deyoung": "Kevin DeYoung",
+    "baucham": "Voddie Baucham",
+    "washer": "Paul Washer",
+    "justin_peters": "Justin Peters",
+    "mbewe": "Conrad Mbewe",
+    "chandler": "Matt Chandler",
+    "macarthur_john": "John MacArthur",
+    "sproul_rc": "R.C. Sproul",
+    "sproul_jr": "R.C. Sproul Jr.",
+    "reagan": "David Reagan",
+    "phillips": "Richard Phillips",
+    "moore": "Russell Moore",
 }
 
 # -------------------------------
@@ -150,13 +229,12 @@ def scrape_channel(limit=1000):
         "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/x-mobipocket-ebook",
-       # "application/zip",
-       # "application/x-rar-compressed",
     ]
 
     with client:
         print("📡 Scraping Telegram channel for Reformed books...")
-        scraped_count = 0
+        forwarded_count = 0
+        skipped_count = 0
 
         for message in client.iter_messages(CHANNEL_USERNAME, limit=limit):
             if not (message.media and isinstance(message.media, MessageMediaDocument)):
@@ -171,38 +249,56 @@ def scrape_channel(limit=1000):
             category = detect_category(f"{file_name} {caption}")
             author = detect_author(f"{file_name} {caption}")
             date = message.date
-
-            local_path = os.path.join(FILES_DIR, file_name)
-            if not os.path.exists(local_path):
-                print(f"⬇️ Downloading: {file_name}")
-                client.download_media(message, file=local_path)
-
-            file_id = upload_to_telegram(local_path, file_name, author, category)
-            if not file_id:
-                print(f"❌ Failed to upload {file_name}")
+            if book_exists(file_name):
+                print(f"⏩ Skipping already existing book: {file_name}")
+                skipped_count += 1
                 continue
 
-            # Store in DB
+            # Forward the message to your private channel
+            try:
+                forwarded = client.forward_messages(
+                    ARCHIVE_CHAT_ID,
+                    message.id,
+                    from_peer=CHANNEL_USERNAME
+                )
+            except FloodWaitError as e:
+                print(f"⏳ Flood wait: sleeping for {e.seconds} seconds...")
+                time.sleep(e.seconds)
+                # After sleeping, try again
+                forwarded = client.forward_messages(
+                    ARCHIVE_CHAT_ID,
+                    message.id,
+                    from_peer=CHANNEL_USERNAME
+                )
+
+            # Get message_id from forwarded message
+            message_id = None
+            if forwarded:
+                if isinstance(forwarded, list):
+                    message_id = forwarded[0].id
+                else:
+                    message_id = forwarded.id
+
+            if not message_id:
+                print(f"❌ Failed to forward {file_name}")
+                continue
+
+            # Store in DB (original caption, message_id, etc.)
             insert_book(
                 title=file_name,
                 caption=caption,
                 author=author,
                 category=category,
                 mime_type=mime_type,
-                file_id=file_id,
+                file_id=str(message_id),
                 date=str(date)
             )
 
-            scraped_count += 1
-            print(f"✅ Uploaded {file_name} ({scraped_count})")
+            forwarded_count += 1
+            print(f"✅ Forwarded {file_name} ({forwarded_count})")
 
-            # Optional: remove local file
-            try:
-                os.remove(local_path)
-            except Exception:
-                pass
-
-        print(f"\n🎯 Finished scraping and uploading {scraped_count} books!")
+        print(f"\n🎯 Finished forwarding and saving {forwarded_count} books!")
+        print(f"⏩ Skipped {skipped_count} books already in database.")
 
 # -------------------------------
 # 🔹 Run Script

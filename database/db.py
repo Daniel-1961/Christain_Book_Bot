@@ -110,3 +110,14 @@ def get_books_by_author(author):
             "date": row[9],
         } for row in rows
     ]
+
+def book_exists(title, file_id=None):
+    conn=sqlite3.connect(DB_PATH)
+    cursor=conn.cursor()
+    if file_id:
+        cursor.execute("SELECT 1 FROM books  WHERE title=? OR file_id=?", (title,file_id))
+    else: 
+         cursor.execute("SELECT 1 FROM books WHERE title=?", (title,))
+    exists = cursor.fetchone() is not None
+    conn.close()
+    return exists

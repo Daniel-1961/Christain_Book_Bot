@@ -1,5 +1,4 @@
 # bot/main.py
-
 import logging
 import sqlite3
 import os
@@ -283,10 +282,14 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("Book not found.")
         return
 
-    title, file_id = book
-    if file_id:
+    title, message_id = book  # message_id is stored as file_id in your DB
+    if message_id:
         try:
-            await query.message.reply_document(document=file_id, filename=title)
+            await context.bot.copy_message(
+                chat_id=update.effective_chat.id,
+                from_chat_id=int(os.getenv("ARCHIVE_CHAT_ID")),
+                message_id=int(message_id)
+            )
         except Exception as e:
             await query.message.reply_text(f"❌ Failed to send the book: {e}")
     else:
