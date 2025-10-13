@@ -199,8 +199,8 @@ def detect_author(text):
 # -------------------------------
 # 🔹 Upload Function (Synchronous)
 # -------------------------------
-def upload_to_telegram(local_path, file_name, author, category):
-    """Uploads a document to Telegram using the Bot API (synchronously)."""
+"""def upload_to_telegram(local_path, file_name, author, category):
+    #Uploads a document to Telegram using the Bot API (synchronously).
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendDocument"
     with open(local_path, "rb") as file_data:
         response = requests.post(
@@ -218,7 +218,7 @@ def upload_to_telegram(local_path, file_name, author, category):
     else:
         print(f"⚠️ Upload failed ({response.status_code}): {response.text}")
     return None
-
+"""
 # -------------------------------
 # 🔹 Main Scraping Logic
 # -------------------------------
