@@ -9,8 +9,6 @@ from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
 )
-from telegram.ext import CallbackContext
-
 from dotenv import load_dotenv
 
 # -------------------------------
@@ -123,8 +121,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Define inline keyboard (Contact + Back)
 def about_keyboard():
     keyboard = [
-        [InlineKeyboardButton("📩 Contact Admin", url="https://t.me/your_username")],
-        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")]
+        [InlineKeyboardButton("📩 Contact Admin", url="https://t.me/Dani1961")],
+        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="menu_main")]
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -135,7 +133,7 @@ async def about(update, context):
         "📖 *“For I am not ashamed of the gospel, for it is the power of God for salvation "
         "to everyone who believes.”*\n"
         "_— Romans 1:16_\n\n"
-        "🌿 *About Christian Books Bot*\n\n"
+        " *About Christian Books Bot*\n\n"
         "This bot was created with a simple purpose — *to make timeless Christian books and resources easily accessible* to everyone.\n\n"
         "Here, you’ll find a growing collection of *Reformed and Evangelical writings*, organized by *author*, *category*, and *topic* — from the early Church Fathers to today’s faithful teachers.\n\n"
         "Our desire is to help you:\n"
@@ -202,18 +200,31 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # About
     if data == "menu_about":
-        await query.message.edit_text(
-            "📖 *About Christian Books Bot*\n\n"
-            "This bot contains spiritual resources from well-known reformed writers.\n"
-            "Browse by category, author, or search books by keyword.",
-            parse_mode="Markdown",
-            reply_markup=back_to_main_keyboard(),
-        )
+        about_text = (
+        "📖 *“For I am not ashamed of the gospel, for it is the power of God for salvation "
+        "to everyone who believes.”*\n"
+        "_— Romans 1:16_\n\n"
+        "🌿 *About Christian Books Bot*\n\n"
+        "This bot was created with a simple purpose — *to make timeless Christian books and resources easily accessible* to everyone.\n\n"
+        "Here, you’ll find a growing collection of *Reformed and Evangelical writings*, organized by *author*, *category*, and *topic* — from the early Church Fathers to today’s faithful teachers.\n\n"
+        "Our desire is to help you:\n"
+        "• 📚 Discover classic works of theology, devotion, and church history\n"
+        "• 🔍 Browse by author or category\n"
+        "• 🙏 Deepen your understanding of Scripture and sound doctrine\n\n"
+        "New books and improvements are being added regularly to make your experience smoother and richer over time.\n\n"
+        "_May these resources encourage you to know Christ more deeply and to grow in grace and truth._\n\n"
+        "💡 *Note from the Developer:*\n"
+        "This project is continually improving to include more books, categories, and better user experience.\n\n"
+        "Enjoy your spiritual reading journey! ✨"
+    )
+        await query.message.reply_text(
+        about_text, parse_mode="Markdown", reply_markup=about_keyboard()
+    )
         return
 
     # Search
     if data == "menu_search":
-        await query.message.edit_text(
+        await query.message.reply_text(
             "🔍 To search for a book, use the command:\n`/search <keyword>`",
             parse_mode="Markdown",
             reply_markup=back_to_main_keyboard(),
@@ -326,6 +337,8 @@ def main():
     app.add_handler(CommandHandler("about", about))
     app.add_handler(CommandHandler("search", search_command))
     app.add_handler(CallbackQueryHandler(callback_handler))
+
+
 
     app.run_polling(drop_pending_updates=True)
 
