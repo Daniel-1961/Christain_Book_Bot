@@ -11,29 +11,24 @@ from telegram.ext import (
 )
 from dotenv import load_dotenv
 
-# -------------------------------
+
 # Load environment variables
-# -------------------------------
+
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-
-# -------------------------------
-# Database settings
-# -------------------------------
+# Database settings and the path of the DB
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "data", "books.db")
 
-# -------------------------------
 # Logging
-# -------------------------------
+
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# -------------------------------
+
 # Database helpers
-# -------------------------------
 def get_categories():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
