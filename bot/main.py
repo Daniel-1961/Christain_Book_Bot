@@ -1,4 +1,4 @@
-# bot/main.py
+c# bot/main.py
 import logging
 import sqlite3
 import os

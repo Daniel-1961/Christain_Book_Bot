@@ -6,14 +6,23 @@ import threading
 from bot.bot_app import create_application
 
 # ----------------------------
-# Create Flask app
+# Create Flask app (WSGI expects a callable named `application` or similar)
 # ----------------------------
 app = Flask(__name__)
 
+
+
 # ----------------------------
-# Create Telegram application
+# Telegram Application (created lazily)
 # ----------------------------
-application = create_application()
+application = None
+
+def get_application():
+    """Return the telegram Application, creating it on first use."""
+    global application
+    if application is None:
+        application = create_application()
+    return application
 
 # ----------------------------
 # Create ONE event loop (important!)
@@ -31,14 +40,15 @@ threading.Thread(target=start_loop, args=(loop,), daemon=True).start()
 # ----------------------------
 @app.route("/webhook", methods=["POST"])
 def webhook():
+    app_obj = get_application()
     update = Update.de_json(
         request.get_json(force=True),
-        application.bot
+        app_obj.bot
     )
 
     # Schedule async processing safely
     asyncio.run_coroutine_threadsafe(
-        application.process_update(update),
+        app_obj.process_update(update),
         loop
     )
 
