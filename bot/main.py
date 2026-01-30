@@ -12,8 +12,6 @@ from telegram.ext import (
 from dotenv import load_dotenv
 
 
-# Load environment variables
-
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 # Database settings and the path of the DB
