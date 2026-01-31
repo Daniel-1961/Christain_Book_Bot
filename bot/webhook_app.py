@@ -28,9 +28,6 @@ def start_loop(loop):
 
 threading.Thread(target=start_loop, args=(loop,), daemon=True).start()
 
-# ----------------------------
-# Webhook endpoint
-# ----------------------------
 @app.route("/webhook", methods=["POST"])
 def webhook():
     app_obj = get_application()
@@ -39,7 +36,6 @@ def webhook():
         app_obj.bot
     )
 
-    # Schedule async processing safely
     asyncio.run_coroutine_threadsafe(
         app_obj.process_update(update),
         loop
