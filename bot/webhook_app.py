@@ -5,16 +5,9 @@ import threading
 
 from bot.bot_app import create_application
 
-# ----------------------------
-# Create Flask app (WSGI expects a callable named `application` or similar)
-# ----------------------------
+
 app = Flask(__name__)
 
-
-
-# ----------------------------
-# Telegram Application (created lazily)
-# ----------------------------
 application = None
 
 def get_application():
