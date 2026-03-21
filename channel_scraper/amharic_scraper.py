@@ -70,27 +70,23 @@ def extract_file_name(document):
 def extract_author_from_caption(caption):
     """
     Try to extract author from Amharic caption patterns like:
-    - ደራሲ: ...
-    - ጸሐፊ: ...
-    - ደራሲ - ...
-    - by ...
-    - Author: ...
+    - 👤ጸሐፊ፦ ዶ/ር መለሰ ወጉ
     """
     if not caption:
         return "Unknown"
 
     patterns = [
-        r'(?:ደራሲ|ጸሐፊ|ፀሐፊ|Author|author|By|by)\s*[:：\-–—]\s*(.+?)(?:\n|$)',
-        r'✍️\s*(.+?)(?:\n|$)',
-        r'✍\s*(.+?)(?:\n|$)',
+        r'(?:👤|✍️|✍)?\s*(?:ደራሲ|ጸሐፊ|ፀሐፊ|Author|author|By|by).{0,5}?(?:፦|:-|:|：|-|–|—)\s*([^\n]+)',
+        r'✍️\s*([^\n]+)',
+        r'✍\s*([^\n]+)',
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, caption)
+        match = re.search(pattern, caption, re.IGNORECASE)
         if match:
             author = match.group(1).strip()
             # Clean up trailing emojis or markers
-            author = re.sub(r'[📚📖🔥✨💡⭐️🙏]+$', '', author).strip()
+            author = re.sub(r'[📚📖📔🔥✨💡⭐️🙏👤📥]+$', '', author).strip()
             if author:
                 return author
 
@@ -100,24 +96,21 @@ def extract_author_from_caption(caption):
 def extract_title_from_caption(caption, file_name):
     """
     Try to extract title from Amharic caption patterns like:
-    - 📚 መጽሐፍ ስም: ...
-    - ርዕስ: ...
-    - Title: ...
-    Falls back to the file name.
+    - 📔ርዕስ:-ካርቦን-ኮፒ ክርስትና
     """
     if not caption:
         return clean_filename(file_name)
 
     patterns = [
-        r'(?:መጽሐፍ\s*(?:ስም)?|ርዕስ|Title|title)\s*[:：\-–—]\s*(.+?)(?:\n|$)',
-        r'📚\s*(.+?)(?:\n|$)',
+        r'(?:📔|📚)?\s*(?:መጽሐፍ\s*(?:ስም)?|ርዕስ|Title|title).{0,5}?(?:፦|:-|:|：|-|–|—)\s*([^\n]+)',
+        r'📚\s*([^\n]+)',
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, caption)
+        match = re.search(pattern, caption, re.IGNORECASE)
         if match:
             title = match.group(1).strip()
-            title = re.sub(r'[📚📖🔥✨💡⭐️🙏]+$', '', title).strip()
+            title = re.sub(r'[📚📖📔🔥✨💡⭐️🙏👤📥]+$', '', title).strip()
             if title:
                 return title
 
@@ -141,11 +134,12 @@ def detect_amharic_category(text):
     text_lower = text.lower()
 
     category_rules = {
-        # Amharic keywords
+        # Extended Amharic keywords
         "መጽሐፍ ቅዱስ": "መጽሐፍ ቅዱስ ጥናት",     # Bible Study
         "ጸሎት": "ጸሎት",                      # Prayer
         "ስብከት": "ስብከት",                    # Sermons
         "ነገረ መለኮት": "ነገረ መለኮት",           # Theology
+        "ሥነ-መለኮት": "ነገረ መለኮት",          
         "ታሪክ": "የቤተክርስቲያን ታሪክ",          # Church History
         "ወንጌል": "ወንጌል",                    # Gospel
         "እምነት": "እምነት",                    # Faith
@@ -153,6 +147,13 @@ def detect_amharic_category(text):
         "ትምህርት": "ትምህርት",                 # Teaching/Doctrine
         "መዝሙር": "መዝሙር",                   # Hymns/Psalms
         "ክርስቲያናዊ": "ክርስቲያናዊ ሕይወት",      # Christian Living
+        "ጋብቻ": "ጋብቻ እና ቤተሰብ",            # Marriage & Family
+        "ቤተሰብ": "ጋብቻ እና ቤተሰብ",           
+        "ውግያ": "መንፈሳዊ ውግያ",              # Spiritual Warfare
+        "ጭንቀት": "የአእምሮ ጤና እና መጽናናት", # Mental Health/Comfort
+        "ስሕተት": "የስህተት ትምህርት መከላከያ",  # Apologetics/Cults
+        "መከላከያ": "የስህተት ትምህርት መከላከያ",
+        
         # English keywords (some channels mix languages)
         "bible": "መጽሐፍ ቅዱስ ጥናት",
         "prayer": "ጸሎት",
