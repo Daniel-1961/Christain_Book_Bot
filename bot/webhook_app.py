@@ -1,7 +1,6 @@
 # bot/webhook_app.py
 import logging
 import asyncio
-import threading
 
 from flask import Flask, request
 from telegram import Update
@@ -19,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 # ----------------------------
 # Create Flask app
-# (WSGI servers like PythonAnywhere expect a callable named `app` or `application`)
 # ----------------------------
 app = Flask(__name__)
 
@@ -29,6 +27,9 @@ app = Flask(__name__)
 _telegram_app = None
 _initialized = False
 
+# Single persistent event loop (no threads needed)
+_loop = asyncio.new_event_loop()
+
 
 def get_application():
     """Return the Telegram Application, creating and initializing it on first use."""
@@ -37,11 +38,7 @@ def get_application():
         _telegram_app = create_application()
 
     if not _initialized:
-        # Initialize the application so the bot object is fully ready
-        future = asyncio.run_coroutine_threadsafe(
-            _telegram_app.initialize(), loop
-        )
-        future.result(timeout=30)  # Wait up to 30s for init
+        _loop.run_until_complete(_telegram_app.initialize())
         _initialized = True
         logger.info("Telegram Application initialized successfully")
 
@@ -49,25 +46,11 @@ def get_application():
 
 
 # ----------------------------
-# Create ONE persistent event loop in a background thread
-# ----------------------------
-loop = asyncio.new_event_loop()
-
-
-def _start_loop(event_loop):
-    asyncio.set_event_loop(event_loop)
-    event_loop.run_forever()
-
-
-threading.Thread(target=_start_loop, args=(loop,), daemon=True).start()
-
-
-# ----------------------------
 # Routes
 # ----------------------------
 @app.route("/")
 def health():
-    """Health check endpoint — useful for uptime monitoring."""
+    """Health check endpoint."""
     return "Christian Books Bot is running! 📚", 200
 
 
@@ -81,11 +64,8 @@ def webhook():
             telegram_app.bot,
         )
 
-        # Schedule async processing on the background event loop
-        asyncio.run_coroutine_threadsafe(
-            telegram_app.process_update(update),
-            loop,
-        )
+        # Process update synchronously on our persistent event loop
+        _loop.run_until_complete(telegram_app.process_update(update))
 
         return "OK", 200
     except Exception:
