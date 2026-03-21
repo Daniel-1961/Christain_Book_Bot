@@ -28,11 +28,11 @@ def get_categories(language=None):
     cursor = conn.cursor()
     if language:
         cursor.execute(
-            "SELECT DISTINCT category FROM books WHERE category IS NOT NULL AND language = ? ORDER BY category",
+            "SELECT MIN(id), category FROM books WHERE category IS NOT NULL AND category != '' AND language = ? GROUP BY category ORDER BY category",
             (language,))
     else:
-        cursor.execute("SELECT DISTINCT category FROM books WHERE category IS NOT NULL ORDER BY category")
-    categories = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT MIN(id), category FROM books WHERE category IS NOT NULL AND category != '' GROUP BY category ORDER BY category")
+    categories = cursor.fetchall()
     conn.close()
     return categories
 
@@ -42,13 +42,23 @@ def get_authors(language=None):
     cursor = conn.cursor()
     if language:
         cursor.execute(
-            "SELECT DISTINCT author FROM books WHERE author IS NOT NULL AND language = ? ORDER BY author",
+            "SELECT MIN(id), author FROM books WHERE author IS NOT NULL AND author != '' AND language = ? GROUP BY author ORDER BY author",
             (language,))
     else:
-        cursor.execute("SELECT DISTINCT author FROM books WHERE author IS NOT NULL ORDER BY author")
-    authors = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT MIN(id), author FROM books WHERE author IS NOT NULL AND author != '' GROUP BY author ORDER BY author")
+    authors = cursor.fetchall()
     conn.close()
     return authors
+
+
+def get_book_metadata_by_id(book_id):
+    """Helper to fetch category/author from a book ID (used to bypass callback limits)."""
+    conn = _get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT category, author FROM books WHERE id=?", (book_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res
 
 
 def get_books_by_category(category, language=None):
@@ -204,15 +214,10 @@ def set_user_language(context, language):
 # -------------------------------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Welcome message with language selection."""
-    user = update.effective_user
-    record_user(user.id, user.username, user.first_name)
-
-    total_users = get_total_user_count()
-    monthly_users = get_monthly_user_count()
-
     welcome_text = (
-        "🌿 *Welcome to Christian Books Bot!*\n"
-        f"👥 {total_users} total users • {monthly_users} this month\n\n"
+        "🌿 *Welcome to Christian Books Bot!*\n\n"
+        "This bot provides easy access to a vast collection of timeless Christian books, sermons, and spiritual resources.\n"
+        "You can browse by category, search by author, or find specific titles to help you grow in your faith.\n\n"
         "Choose your language / ቋንቋዎን ይምረጡ:"
     )
     await update.message.reply_text(
@@ -234,6 +239,10 @@ async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 📚 Discover classic works of theology, devotion, and church history\n"
         "• 🔍 Browse by author or category\n"
         "• 🙏 Deepen your understanding of Scripture and sound doctrine\n\n"
+        "*Credits / Sources:*\n"
+        "A special thanks to the following Telegram channels where these resources are gathered:\n"
+        "🇬🇧 English: `@christiangoodbooks`\n"
+        "🇪🇹 Amharic: `@amharicspritualbooks`\n\n"
         "_May these resources encourage you to know Christ more deeply and to grow in grace and truth._\n\n"
         "Enjoy your spiritual reading journey! ✨"
     )
@@ -260,7 +269,7 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton(f"{title} ({author})", callback_data=str(book_id))]
-        for book_id, title, author in results
+        for book_id, title, author in results[:90] # Truncate to avoid 100 button limit error
     ]
     keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_main")])
 
@@ -329,6 +338,10 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• 📚 Discover classic works of theology, devotion, and church history\n"
             "• 🔍 Browse by author or category\n"
             "• 🙏 Deepen your understanding of Scripture and sound doctrine\n\n"
+            "*Credits / Sources:*\n"
+            "A special thanks to the following Telegram channels where these resources are gathered:\n"
+            "🇬🇧 English: `@christiangoodbooks`\n"
+            "🇪🇹 Amharic: `@amharicspritualbooks`\n\n"
             "_May these resources encourage you to know Christ more deeply and to grow in grace and truth._\n\n"
             "Enjoy your spiritual reading journey! ✨"
         )
@@ -359,8 +372,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         keyboard = [
-            [InlineKeyboardButton(cat, callback_data=f"cat_{cat}")]
-            for cat in categories
+            [InlineKeyboardButton(cat, callback_data=f"cat_{book_id}")]
+            for book_id, cat in categories[:90]
         ]
         keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_main")])
 
@@ -379,8 +392,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         keyboard = [
-            [InlineKeyboardButton(auth, callback_data=f"auth_{auth}")]
-            for auth in authors
+            [InlineKeyboardButton(auth, callback_data=f"auth_{book_id}")]
+            for book_id, auth in authors[:90]
         ]
         keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_main")])
 
@@ -392,7 +405,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Category books
     if data.startswith("cat_"):
-        category = data.replace("cat_", "")
+        ref_id = data.replace("cat_", "")
+        metadata = get_book_metadata_by_id(ref_id)
+        if not metadata: return
+        category = metadata[0]
+
         books = get_books_by_category(category, language)
         if not books:
             msg = f"በ{category} ውስጥ መጽሐፍ አልተገኘም።" if language == "Amharic" else f"No books found in {category}."
@@ -401,7 +418,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         keyboard = [
             [InlineKeyboardButton(f"{title} ({author})", callback_data=str(book_id))]
-            for book_id, title, author, _ in books
+            for book_id, title, author, _ in books[:90]
         ]
         keyboard.append(
             [InlineKeyboardButton("⬅️ Back", callback_data="menu_category")]
@@ -415,7 +432,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Author books
     if data.startswith("auth_"):
-        author = data.replace("auth_", "")
+        ref_id = data.replace("auth_", "")
+        metadata = get_book_metadata_by_id(ref_id)
+        if not metadata: return
+        author = metadata[1]
+        
         books = get_books_by_author(author, language)
         if not books:
             msg = f"በ{author} የተጻፉ መጽሐፍት አልተገኙም።" if language == "Amharic" else f"No books found by {author}."
@@ -424,7 +445,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         keyboard = [
             [InlineKeyboardButton(title, callback_data=str(book_id))]
-            for book_id, title, _, _ in books
+            for book_id, title, _, _ in books[:90]
         ]
         keyboard.append(
             [InlineKeyboardButton("⬅️ Back", callback_data="menu_author")]
