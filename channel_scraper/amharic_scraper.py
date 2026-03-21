@@ -191,16 +191,17 @@ def scrape_amharic_channel(channel_username, limit=1000):
         file_name = extract_file_name(message.media.document)
         caption = message.message or ""
 
-        # Check if already exists
-        if book_exists(file_name):
-            print(f"⏩ Skipping existing: {file_name}")
+        # Extract metadata from caption early to check for duplicates
+        title = extract_title_from_caption(caption, file_name)
+
+        # Check if already exists (using the exact cleaned title)
+        if book_exists(title):
+            print(f"⏩ Skipping existing: {title}")
             skipped_count += 1
             continue
 
-        # Extract metadata from caption
         author = extract_author_from_caption(caption)
-        title = extract_title_from_caption(caption, file_name)
-        category = detect_amharic_category(f"{file_name} {caption}")
+        category = detect_amharic_category(f"{title} {caption}")
         date = message.date
 
         # Forward to archive channel
