@@ -291,7 +291,8 @@ def scrape_channel(limit=1000):
                 category=category,
                 mime_type=mime_type,
                 file_id=str(message_id),
-                date=str(date)
+                date=str(date),
+                language='English'
             )
 
             forwarded_count += 1
