@@ -59,7 +59,7 @@ DB_PATH=data/books.db
  ```bash
  python bot/main.py
 ```
-### 🗃️ Project Structure
+## 🗃️ Project Structure
 ```markdown
 Christain_Book_Bot/
 │
@@ -74,8 +74,9 @@ Christain_Book_Bot/
 ├── requirements.txt         # Dependencies
 ├── .env.example             # Example environment variables
 └── README.md
+```
 
-### 🧩 Future Improvements
+## 🧩 Future Improvements
 
 🌍 Add more languages (Amharic and English expansion)
 
