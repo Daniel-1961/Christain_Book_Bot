@@ -67,20 +67,52 @@ def extract_file_name(document):
     return "Unknown_File"
 
 
+def is_english_book(caption):
+    """
+    Detect if a caption describes an English-language book.
+    We skip these in the Amharic scraper so only Amharic books are collected.
+    English books are handled by the separate English scraper.
+    """
+    if not caption:
+        return False
+
+    # If the caption has English keywords like "Book", "Author", "Page", "Size"
+    english_markers = [
+        r'(?:^|\n)\s*Book\s*[:：፦\-–—]',
+        r'(?:^|\n)\s*👤\s*Author\s*[:：፦\-–—]',
+        r'(?:^|\n)\s*📑\s*Page\s*[:：፦\-–—]',
+        r'(?:^|\n)\s*💾\s*Size\s*[:：፦\-–—]',
+    ]
+    english_count = sum(1 for p in english_markers if re.search(p, caption, re.IGNORECASE))
+    if english_count >= 2:
+        return True
+
+    return False
+
+
 def extract_author_from_caption(caption):
     """
-    Try to extract author from Amharic caption patterns like:
-    - ደራሲ: ...
-    - ጸሐፊ: ...
-    - ደራሲ - ...
-    - by ...
-    - Author: ...
+    Extract author from Amharic caption patterns.
+    Handles separators: ፦  :-  :  -  –  —
+    Handles emoji prefixes: 👤
+    
+    Examples:
+        👤ደራሲ፦ቻርለስ ዳየር(ዶ/ር)
+        👤ጸሐፊ:-ጳውሎስ ፈቃዱ
+        👤ጸሐፊ፦ንጉሴ ቡልቻ(ጋሽ)
     """
     if not caption:
         return "Unknown"
 
+    # Unified separator group that covers all observed formats
+    sep = r'[:：፦]\s*|\s*:-\s*|\s*[–—]\s*'
+
     patterns = [
-        r'(?:ደራሲ|ጸሐፊ|ፀሐፊ|Author|author|By|by)\s*[:：\-–—]\s*(.+?)(?:\n|$)',
+        # 👤ደራሲ፦... or 👤ጸሐፊ:-... (emoji glued to keyword)
+        rf'👤\s*(?:ደራሲ|ጸሐፊ|ፀሐፊ)\s*(?:{sep})(.+?)(?:\n|$)',
+        # ደራሲ፦... without emoji
+        rf'(?:ደራሲ|ጸሐፊ|ፀሐፊ)\s*(?:{sep})(.+?)(?:\n|$)',
+        # Pen emoji patterns
         r'✍️\s*(.+?)(?:\n|$)',
         r'✍\s*(.+?)(?:\n|$)',
     ]
@@ -89,8 +121,8 @@ def extract_author_from_caption(caption):
         match = re.search(pattern, caption)
         if match:
             author = match.group(1).strip()
-            # Clean up trailing emojis or markers
-            author = re.sub(r'[📚📖🔥✨💡⭐️🙏]+$', '', author).strip()
+            # Remove trailing emojis and anything after them (e.g. 🗣ተርጓሚ line noise)
+            author = re.sub(r'\s*[📚📖🔥✨💡⭐️🙏🗣💾📑📔👤]+.*$', '', author).strip()
             if author:
                 return author
 
@@ -99,17 +131,29 @@ def extract_author_from_caption(caption):
 
 def extract_title_from_caption(caption, file_name):
     """
-    Try to extract title from Amharic caption patterns like:
-    - 📚 መጽሐፍ ስም: ...
-    - ርዕስ: ...
-    - Title: ...
-    Falls back to the file name.
+    Extract title from Amharic caption patterns.
+    Handles separators: ፦  :-  :  -  –  —
+    Handles emoji prefixes: 📔, 📚
+    
+    Examples:
+        📔ርዕስ:-መስቀሉን ማኮሰስ ፣ ስቅሉን ማራከስ
+        📔ርዕስ፦ወቅታዊ ዘላለማዊ
+        📔ርዕስ፦የዓለማችን ሁኔታዎችና የመጽሐፍ ቅዱስ ትንቢቶች
     """
     if not caption:
         return clean_filename(file_name)
 
+    # Unified separator group
+    sep = r'[:：፦]\s*|\s*:-\s*|\s*[–—]\s*'
+
     patterns = [
-        r'(?:መጽሐፍ\s*(?:ስም)?|ርዕስ|Title|title)\s*[:：\-–—]\s*(.+?)(?:\n|$)',
+        # 📔ርዕስ፦... or 📔ርዕስ:-... (emoji glued to keyword)
+        rf'📔\s*ርዕስ\s*(?:{sep})(.+?)(?:\n|$)',
+        # ርዕስ፦... without emoji
+        rf'ርዕስ\s*(?:{sep})(.+?)(?:\n|$)',
+        # መጽሐፍ ስም:... 
+        rf'መጽሐፍ\s*(?:ስም)?\s*(?:{sep})(.+?)(?:\n|$)',
+        # 📚 ... (emoji followed by title text)
         r'📚\s*(.+?)(?:\n|$)',
     ]
 
@@ -117,7 +161,8 @@ def extract_title_from_caption(caption, file_name):
         match = re.search(pattern, caption)
         if match:
             title = match.group(1).strip()
-            title = re.sub(r'[📚📖🔥✨💡⭐️🙏]+$', '', title).strip()
+            # Remove trailing emojis
+            title = re.sub(r'\s*[📚📖🔥✨💡⭐️🙏🗣💾📑📔👤]+.*$', '', title).strip()
             if title:
                 return title
 
@@ -189,6 +234,12 @@ def scrape_amharic_channel(channel_username, limit=1000):
 
         file_name = extract_file_name(message.media.document)
         caption = message.message or ""
+
+        # Skip English-language books (handled by the English scraper)
+        if is_english_book(caption):
+            print(f"🔤 Skipping English book: {file_name}")
+            skipped_count += 1
+            continue
 
         # Extract metadata from caption early for accurate duplicate checking
         author = extract_author_from_caption(caption)

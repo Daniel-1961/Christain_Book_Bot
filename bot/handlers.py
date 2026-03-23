@@ -321,7 +321,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Main menu
     if data == "menu_main":
         if language == "Amharic":
-            text = "🏠 ዋና ምናሌ:"
+            text = "🏠 ዋና ማዉጫ:"
         else:
             text = "🏠 Main Menu:"
         await query.message.edit_text(
