@@ -178,7 +178,6 @@ def get_total_user_count():
     conn.close()
     return count
 
-
 def get_all_users():
     """Get a list of all user IDs."""
     conn = sqlite3.connect(DB_PATH)

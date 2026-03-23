@@ -2,6 +2,7 @@
 import logging
 import asyncio
 import os
+import threading
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -53,6 +54,36 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # -------------------------------
 # 2. /broadcast Command
 # -------------------------------
+def _broadcast_thread(bot, users, message, admin_id):
+    """Runs the broadcast loop in a completely separate OS thread so the Webhook worker doesn't freeze."""
+    async def background_task():
+        success = 0
+        failed = 0
+        for user_id in users:
+            try:
+                await bot.send_message(chat_id=user_id, text=message, parse_mode="Markdown", disable_web_page_preview=True)
+                success += 1
+                await asyncio.sleep(0.05)  # 50ms sleep strictly enforced by Telegram limits
+            except Exception as e:
+                logger.error(f"Failed to send broadcast to {user_id}: {e}")
+                failed += 1
+
+        try:
+            await bot.send_message(
+                chat_id=admin_id, 
+                text=f"✅ *Broadcast Complete!*\n\nDelivered: {success}\nFailed: {failed}", 
+                parse_mode="Markdown"
+            )
+        except Exception:
+            pass
+
+    # Create a new event loop for this specific background thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(background_task())
+    loop.close()
+
+
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
         return
@@ -68,21 +99,13 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("No users found in the database.")
         return
 
-    await update.message.reply_text(f"🚀 Starting broadcast to {len(users)} users...\nThis may take a minute.")
+    # Reply immediately so the PythonAnywhere web worker is freed up!
+    await update.message.reply_text(f"🚀 *Started broadcast to {len(users)} users...*\nSince you are on a free tier, this is running in the background. You'll get a confirmation message when it's done.", parse_mode="Markdown")
 
-    success = 0
-    failed = 0
-
-    for user_id in users:
-        try:
-            await context.bot.send_message(chat_id=user_id, text=message, parse_mode="Markdown")
-            success += 1
-            await asyncio.sleep(0.05)  # Sleep 50ms to prevent Telegram flood limits
-        except Exception as e:
-            logger.error(f"Failed to send broadcast to {user_id}: {e}")
-            failed += 1
-
-    await update.message.reply_text(f"✅ *Broadcast Complete!*\n\nDelivered: {success}\nFailed: {failed}", parse_mode="Markdown")
+    # Fire and forget the thread
+    thread = threading.Thread(target=_broadcast_thread, args=(context.bot, users, message, update.effective_user.id))
+    thread.daemon = True
+    thread.start()
 
 
 # -------------------------------

@@ -4,10 +4,13 @@ from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     CallbackQueryHandler,
+    PreCheckoutQueryHandler,
+    MessageHandler,
+    filters
 )
 from dotenv import load_dotenv
 
-from bot.handlers import start, about, search_command, callback_handler
+from bot.handlers import start, about, search_command, callback_handler, precheckout_callback, successful_payment_callback
 from bot.admin import admin_stats, broadcast_command, add_book_conv_handler
 
 load_dotenv()
@@ -25,5 +28,9 @@ def create_application():
     application.add_handler(CommandHandler("broadcast", broadcast_command))
     application.add_handler(add_book_conv_handler)
     application.add_handler(CallbackQueryHandler(callback_handler))
+
+    # Payment Handlers
+    application.add_handler(PreCheckoutQueryHandler(precheckout_callback))
+    application.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_callback))
 
     return application
