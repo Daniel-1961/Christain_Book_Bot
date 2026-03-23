@@ -177,3 +177,12 @@ def get_total_user_count():
     count = cursor.fetchone()[0]
     conn.close()
     return count
+
+def get_all_users():
+    """Get a list of all user IDs."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT user_id FROM users")
+    users = [row[0] for row in cursor.fetchall()]
+    conn.close()
+    return users

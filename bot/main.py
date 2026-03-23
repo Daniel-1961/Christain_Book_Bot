@@ -34,15 +34,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+from bot.bot_app import create_application
+
 def main():
     """Run the bot in polling mode (for local development only)."""
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("about", about))
-    app.add_handler(CommandHandler("search", search_command))
-    app.add_handler(CallbackQueryHandler(callback_handler))
-
+    app = create_application()
     app.run_polling(drop_pending_updates=True)
 
 

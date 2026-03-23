@@ -2,7 +2,7 @@
 import logging
 import sqlite3
 import os
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LabeledPrice
 from telegram.ext import ContextTypes
 from dotenv import load_dotenv
 
@@ -28,11 +28,11 @@ def get_categories(language=None):
     cursor = conn.cursor()
     if language:
         cursor.execute(
-            "SELECT DISTINCT category FROM books WHERE category IS NOT NULL AND language = ? ORDER BY category",
+            "SELECT MIN(id), category FROM books WHERE category IS NOT NULL AND category != '' AND language = ? GROUP BY category ORDER BY category",
             (language,))
     else:
-        cursor.execute("SELECT DISTINCT category FROM books WHERE category IS NOT NULL ORDER BY category")
-    categories = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT MIN(id), category FROM books WHERE category IS NOT NULL AND category != '' GROUP BY category ORDER BY category")
+    categories = cursor.fetchall()
     conn.close()
     return categories
 
@@ -42,13 +42,23 @@ def get_authors(language=None):
     cursor = conn.cursor()
     if language:
         cursor.execute(
-            "SELECT DISTINCT author FROM books WHERE author IS NOT NULL AND language = ? ORDER BY author",
+            "SELECT MIN(id), author FROM books WHERE author IS NOT NULL AND author != '' AND language = ? GROUP BY author ORDER BY author",
             (language,))
     else:
-        cursor.execute("SELECT DISTINCT author FROM books WHERE author IS NOT NULL ORDER BY author")
-    authors = [row[0] for row in cursor.fetchall()]
+        cursor.execute("SELECT MIN(id), author FROM books WHERE author IS NOT NULL AND author != '' GROUP BY author ORDER BY author")
+    authors = cursor.fetchall()
     conn.close()
     return authors
+
+
+def get_book_metadata_by_id(book_id):
+    """Helper to fetch category/author from a book ID (used to bypass callback limits)."""
+    conn = _get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT category, author FROM books WHERE id=?", (book_id,))
+    res = cursor.fetchone()
+    conn.close()
+    return res
 
 
 def get_books_by_category(category, language=None):
@@ -161,6 +171,7 @@ def main_menu_keyboard(language="English"):
             [InlineKeyboardButton("👤 በደራሲ ፈልግ", callback_data="menu_author")],
             [InlineKeyboardButton("🔍 መጽሐፍ ፈልግ", callback_data="menu_search")],
             [InlineKeyboardButton("ℹ️ ስለ ቦቱ", callback_data="menu_about")],
+            [InlineKeyboardButton("🌟 ቦቱን ደግፉ (Donate)", callback_data="menu_donate")],
             [InlineKeyboardButton("🔄 ቋንቋ ቀይር", callback_data="menu_change_lang")],
         ]
     else:
@@ -169,6 +180,7 @@ def main_menu_keyboard(language="English"):
             [InlineKeyboardButton("👤 Browse by Author", callback_data="menu_author")],
             [InlineKeyboardButton("🔍 Search Books", callback_data="menu_search")],
             [InlineKeyboardButton("ℹ️ About", callback_data="menu_about")],
+            [InlineKeyboardButton("🌟 Support Bot (Donate)", callback_data="menu_donate")],
             [InlineKeyboardButton("🔄 Change Language", callback_data="menu_change_lang")],
         ]
     return InlineKeyboardMarkup(keyboard)
@@ -206,13 +218,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Welcome message with language selection."""
     user = update.effective_user
     record_user(user.id, user.username, user.first_name)
-
-    total_users = get_total_user_count()
-    monthly_users = get_monthly_user_count()
-
+    
     welcome_text = (
-        "🌿 *Welcome to Christian Books Bot!*\n"
-        f"👥 {total_users} total users • {monthly_users} this month\n\n"
+        "🌿 *Welcome to Christian Books Bot!*\n\n"
+        "This bot provides easy access to a vast collection of timeless Christian books, sermons, and spiritual resources.\n"
+        "You can browse by category, search by author, or find specific titles to help you grow in your faith.\n\n"
         "Choose your language / ቋንቋዎን ይምረጡ:"
     )
     await update.message.reply_text(
@@ -234,6 +244,10 @@ async def about(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "• 📚 Discover classic works of theology, devotion, and church history\n"
         "• 🔍 Browse by author or category\n"
         "• 🙏 Deepen your understanding of Scripture and sound doctrine\n\n"
+        "*Credits / Sources:*\n"
+        "A special thanks to the following Telegram channels where these resources are gathered:\n"
+        "🇬🇧 English: `@christiangoodbooks`\n"
+        "🇪🇹 Amharic: `@amharicspritualbooks`\n\n"
         "_May these resources encourage you to know Christ more deeply and to grow in grace and truth._\n\n"
         "Enjoy your spiritual reading journey! ✨"
     )
@@ -260,7 +274,7 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     keyboard = [
         [InlineKeyboardButton(f"{title} ({author})", callback_data=str(book_id))]
-        for book_id, title, author in results
+        for book_id, title, author in results[:90] # Truncate to avoid 100 button limit error
     ]
     keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_main")])
 
@@ -268,6 +282,9 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔍 Search results for '{keyword}':",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
+
+
+
 
 
 # -------------------------------
@@ -307,7 +324,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Main menu
     if data == "menu_main":
         if language == "Amharic":
-            text = "🏠 ዋና ምናሌ:"
+            text = "🏠 ዋና ማዉጫ:"
         else:
             text = "🏠 Main Menu:"
         await query.message.edit_text(
@@ -329,11 +346,55 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• 📚 Discover classic works of theology, devotion, and church history\n"
             "• 🔍 Browse by author or category\n"
             "• 🙏 Deepen your understanding of Scripture and sound doctrine\n\n"
+            "*Credits / Sources:*\n"
+            "A special thanks to the following Telegram channels where these resources are gathered:\n"
+            "🇬🇧 English: `@christiangoodbooks`\n"
+            "🇪🇹 Amharic: `@amharicspritualbooks`\n\n"
             "_May these resources encourage you to know Christ more deeply and to grow in grace and truth._\n\n"
             "Enjoy your spiritual reading journey! ✨"
         )
-        await query.message.reply_text(
+        await query.message.edit_text(
             about_text, parse_mode="Markdown", reply_markup=about_keyboard()
+        )
+        return
+
+    # Support / Donate Options
+    if data == "menu_donate":
+        keyboard = [
+            [InlineKeyboardButton("⭐️ 50 Stars (~$1)", callback_data="stars_50")],
+            [InlineKeyboardButton("⭐️ 100 Stars (~$2)", callback_data="stars_100")],
+            [InlineKeyboardButton("⭐️ 250 Stars (~$5)", callback_data="stars_250")],
+            [InlineKeyboardButton("⬅️ Back", callback_data="menu_main")]
+        ]
+        text = (
+            "🌟 *Support Christian Books Bot*\n\n"
+            "This bot is free to use! If it has blessed you, please consider donating a few Telegram Stars to keep our server running and support new features.\n\n"
+            "Choose an amount to donate securely via Telegram:"
+        ) if language == "English" else (
+            "🌟 *ለክርስቲያን መጽሐፍት ቦት ድጋፍ ያድርጉ*\n\n"
+            "ይህ ቦት ነፃ ነው! ከተጠቀሙበትና ከተባረኩበት፣ ሰርቨር ለማሳደግና አዳዲስ ነገሮችን ለመጨመር በቴሌግራም ስታር አነስተኛ ድጋፍ ቢያደርጉልን እናመሰግናለን።\n\n"
+            "በቴሌግራም የሚለገሱበትን መጠን ይምረጡ:"
+        )
+        await query.message.edit_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    # Send Star Invoice
+    if data.startswith("stars_"):
+        amount = int(data.split("_")[1])
+        title = "Support Christian Books Bot"
+        description = f"Thank you for supporting the hosting and maintenance of this bot with {amount} Stars! May God bless you."
+        payload = "support_donation"
+        currency = "XTR"  # Telegram Stars native currency
+        prices = [LabeledPrice("Donation", amount)]
+        
+        await context.bot.send_invoice(
+            chat_id=query.message.chat_id,
+            title=title,
+            description=description,
+            payload=payload,
+            provider_token="",  # Must be empty for Stars
+            currency=currency,
+            prices=prices
         )
         return
 
@@ -343,7 +404,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = "🔍 መጽሐፍ ለመፈለግ ይህን ትእዛዝ ይጠቀሙ:\n`/search <ቁልፍ ቃል>`"
         else:
             text = "🔍 To search for a book, use the command:\n`/search <keyword>`"
-        await query.message.reply_text(
+        await query.message.edit_text(
             text,
             parse_mode="Markdown",
             reply_markup=back_to_main_keyboard(),
@@ -359,8 +420,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         keyboard = [
-            [InlineKeyboardButton(cat, callback_data=f"cat_{cat}")]
-            for cat in categories
+            [InlineKeyboardButton(cat, callback_data=f"cat_{book_id}")]
+            for book_id, cat in categories[:90]
         ]
         keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_main")])
 
@@ -379,8 +440,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         keyboard = [
-            [InlineKeyboardButton(auth, callback_data=f"auth_{auth}")]
-            for auth in authors
+            [InlineKeyboardButton(auth, callback_data=f"auth_{book_id}")]
+            for book_id, auth in authors[:90]
         ]
         keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="menu_main")])
 
@@ -392,7 +453,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Category books
     if data.startswith("cat_"):
-        category = data.replace("cat_", "")
+        ref_id = data.replace("cat_", "")
+        metadata = get_book_metadata_by_id(ref_id)
+        if not metadata: return
+        category = metadata[0]
+
         books = get_books_by_category(category, language)
         if not books:
             msg = f"በ{category} ውስጥ መጽሐፍ አልተገኘም።" if language == "Amharic" else f"No books found in {category}."
@@ -401,7 +466,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         keyboard = [
             [InlineKeyboardButton(f"{title} ({author})", callback_data=str(book_id))]
-            for book_id, title, author, _ in books
+            for book_id, title, author, _ in books[:90]
         ]
         keyboard.append(
             [InlineKeyboardButton("⬅️ Back", callback_data="menu_category")]
@@ -415,7 +480,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # Author books
     if data.startswith("auth_"):
-        author = data.replace("auth_", "")
+        ref_id = data.replace("auth_", "")
+        metadata = get_book_metadata_by_id(ref_id)
+        if not metadata: return
+        author = metadata[1]
+        
         books = get_books_by_author(author, language)
         if not books:
             msg = f"በ{author} የተጻፉ መጽሐፍት አልተገኙም።" if language == "Amharic" else f"No books found by {author}."
@@ -424,7 +493,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         keyboard = [
             [InlineKeyboardButton(title, callback_data=str(book_id))]
-            for book_id, title, _, _ in books
+            for book_id, title, _, _ in books[:90]
         ]
         keyboard.append(
             [InlineKeyboardButton("⬅️ Back", callback_data="menu_author")]
@@ -439,7 +508,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Book download
     book = get_book_by_id(data)
     if not book:
-        await query.message.reply_text("Book not found.")
+        await query.answer("❌ Book not found.", show_alert=True)
         return
 
     title, message_id = book
@@ -450,7 +519,29 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 from_chat_id=int(os.getenv("ARCHIVE_CHAT_ID")),
                 message_id=int(message_id),
             )
+            # Acknowledge the click without spamming the chat
+            await query.answer(f"Sent: {title}")
         except Exception as e:
-            await query.message.reply_text(f"❌ Failed to send the book: {e}")
+            logger.error(f"Copy message failed: {e}")
+            await query.answer("❌ Failed to send the book.", show_alert=True)
     else:
-        await query.message.reply_text("File not available for download.")
+        await query.answer("❌ File not available for download.", show_alert=True)
+
+# -------------------------------
+# Payment Handlers
+# -------------------------------
+async def precheckout_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Answers the PreCheckoutQuery for Telegram Stars"""
+    query = update.pre_checkout_query
+    if query.invoice_payload != 'support_donation':
+        await query.answer(ok=False, error_message="Something went wrong with the payload.")
+    else:
+        await query.answer(ok=True)
+
+
+async def successful_payment_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Confirms the successful Star payment and thanks the user."""
+    await update.message.reply_text(
+        "🎉 *God bless you!*\n\nThank you so much for your generous support! Your contribution helps keep this bot alive and free for everyone.",
+        parse_mode="Markdown"
+    )
