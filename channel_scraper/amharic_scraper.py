@@ -118,7 +118,7 @@ def extract_author_from_caption(caption):
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, caption)
+        match = re.search(pattern, caption, re.IGNORECASE)
         if match:
             author = match.group(1).strip()
             # Remove trailing emojis and anything after them (e.g. 🗣ተርጓሚ line noise)
@@ -158,7 +158,7 @@ def extract_title_from_caption(caption, file_name):
     ]
 
     for pattern in patterns:
-        match = re.search(pattern, caption)
+        match = re.search(pattern, caption, re.IGNORECASE)
         if match:
             title = match.group(1).strip()
             # Remove trailing emojis
@@ -186,11 +186,12 @@ def detect_amharic_category(text):
     text_lower = text.lower()
 
     category_rules = {
-        # Amharic keywords
+        # Extended Amharic keywords
         "መጽሐፍ ቅዱስ": "መጽሐፍ ቅዱስ ጥናት",     # Bible Study
         "ጸሎት": "ጸሎት",                      # Prayer
         "ስብከት": "ስብከት",                    # Sermons
         "ነገረ መለኮት": "ነገረ መለኮት",           # Theology
+        "ሥነ-መለኮት": "ነገረ መለኮት",          
         "ታሪክ": "የቤተክርስቲያን ታሪክ",          # Church History
         "ወንጌል": "ወንጌል",                    # Gospel
         "እምነት": "እምነት",                    # Faith
@@ -198,6 +199,13 @@ def detect_amharic_category(text):
         "ትምህርት": "ትምህርት",                 # Teaching/Doctrine
         "መዝሙር": "መዝሙር",                   # Hymns/Psalms
         "ክርስቲያናዊ": "ክርስቲያናዊ ሕይወት",      # Christian Living
+        "ጋብቻ": "ጋብቻ እና ቤተሰብ",            # Marriage & Family
+        "ቤተሰብ": "ጋብቻ እና ቤተሰብ",           
+        "ውግያ": "መንፈሳዊ ውግያ",              # Spiritual Warfare
+        "ጭንቀት": "የአእምሮ ጤና እና መጽናናት", # Mental Health/Comfort
+        "ስሕተት": "የስህተት ትምህርት መከላከያ",  # Apologetics/Cults
+        "መከላከያ": "የስህተት ትምህርት መከላከያ",
+        
         # English keywords (some channels mix languages)
         "bible": "መጽሐፍ ቅዱስ ጥናት",
         "prayer": "ጸሎት",
@@ -243,8 +251,7 @@ def scrape_amharic_channel(channel_username, limit=1000):
 
         # Extract metadata from caption early for accurate duplicate checking
         author = extract_author_from_caption(caption)
-        title = extract_title_from_caption(caption, file_name)
-        category = detect_amharic_category(f"{file_name} {caption}")
+        category = detect_amharic_category(f"{title} {caption}")
         date = message.date
 
         # Check if already exists (using the cleaned title to prevent duplicates)
