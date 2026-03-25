@@ -5,7 +5,6 @@ A **Telegram bot** that helps Christians easily **discover, browse, and access C
 The goal is to build a **free, accessible digital library** where users can search books by *author*, *category*, or *keyword*, and download them directly in Telegram.
 
 ---
-
 ## 🌟 Features
 
 - 📚 **Browse by author, category, or keyword**
@@ -16,7 +15,6 @@ The goal is to build a **free, accessible digital library** where users can sear
 - ⚙️ Built with **Python** and **python-telegram-bot**
 
 ---
-
 ## 🏗️ Tech Stack
 
 | Component | Technology |
@@ -28,12 +26,10 @@ The goal is to build a **free, accessible digital library** where users can sear
 | **Scraper** | Custom Telegram scraper for collecting book data |
 
 ---
-
 ## 🚀 Getting Started
 
 ### 1️⃣ Clone the repository
 ```bash
-
 git clone https://github.com/Daniel-1961/Christain_Book_Bot.git
 cd Christain_Book_Bot
 ```
