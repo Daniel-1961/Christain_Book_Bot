@@ -1,4 +1,4 @@
-# 📖 Christian Book Bot
+#  Christian Book Bot
 
 A **Telegram bot** that helps Christians easily **discover, browse, and access Christian books** from public Telegram channels — including writings from the **early church fathers**, **medieval theologians**, and **modern evangelical authors**.  
 
