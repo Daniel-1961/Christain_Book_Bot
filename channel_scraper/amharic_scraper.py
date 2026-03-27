@@ -149,11 +149,15 @@ def extract_title_from_caption(caption, file_name):
     patterns = [
         # 📔ርዕስ፦... or 📔ርዕስ:-... (emoji glued to keyword)
         rf'📔\s*ርዕስ\s*(?:{sep})(.+?)(?:\n|$)',
+        # 📚ስም፦... (Book Name pattern)
+        rf'📚\s*ስም\s*(?:{sep})(.+?)(?:\n|$)',
         # ርዕስ፦... without emoji
         rf'ርዕስ\s*(?:{sep})(.+?)(?:\n|$)',
+        # ስም፦... without emoji
+        rf'ስም\s*(?:{sep})(.+?)(?:\n|$)',
         # መጽሐፍ ስም:... 
         rf'መጽሐፍ\s*(?:ስም)?\s*(?:{sep})(.+?)(?:\n|$)',
-        # 📚 ... (emoji followed by title text)
+        # 📚 ... (emoji followed by title text, last resort)
         r'📚\s*(.+?)(?:\n|$)',
     ]
 
@@ -251,6 +255,7 @@ def scrape_amharic_channel(channel_username, limit=1000):
 
         # Extract metadata from caption early for accurate duplicate checking
         author = extract_author_from_caption(caption)
+        title = extract_title_from_caption(caption, file_name)
         category = detect_amharic_category(f"{title} {caption}")
         date = message.date
 
