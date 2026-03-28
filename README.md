@@ -70,7 +70,6 @@ Christain_Book_Bot/
 ├── .env.example             # Example environment variables
 └── README.md
 ```
-
 ##  Future Improvements
 
 🌍 Add more languages (Amharic and English expansion)
