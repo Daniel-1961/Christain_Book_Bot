@@ -1,7 +1,6 @@
 # Christian Book Bot
 
 ![Python](https://img.shields.io/badge/language-python-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
 ![Deployed](https://img.shields.io/badge/deployed-PythonAnywhere-orange)
 ![Status](https://img.shields.io/badge/status-24/7-green)
 
@@ -100,9 +99,6 @@ Contributions welcome! To get started:
 4. Push to the branch (`git push origin feature/YourFeature`)
 5. Open a pull request
 
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
 ## Contact
 
