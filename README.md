@@ -1,82 +1,107 @@
-#  Christian Book Bot
-A **Telegram bot** that helps Christians easily **discover, browse, and access Christian books** from public Telegram channels — including writings from the **early church fathers**, **medieval theologians**, and **modern evangelical authors**.  
-The goal is to build a **free, accessible digital library** where users can search books by *author*, *category*, or *keyword*, and download them directly in Telegram.
----
+# Christian Book Bot
+
+![Python](https://img.shields.io/badge/language-python-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Deployed](https://img.shields.io/badge/deployed-PythonAnywhere-orange)
+![Status](https://img.shields.io/badge/status-24/7-green)
+
+## Overview
+
+Christian Book Bot ([Telegram: @ChristianBooksHelperBot](https://t.me/ChristianBooksHelperBot)) is an intelligent chatbot designed to help users discover, explore, and learn more about Christian books—now supporting both **Amharic** and **English** titles. The bot provides personalized recommendations, detailed summaries, and additional resources for readers of all backgrounds and interests.
 
 ## Features
-- 📚 **Browse by author, category, or keyword**
-- 🔍 **Search** books quickly
-- 💾 **Download** books directly from Telegram
-- 🗂️ Uses a **database** for fast, organized retrieval
-- 🕊️ Supports **English** and **Amharic** collections
-- ⚙️ Built with **Python** and **python-telegram-bot**
 
----
-## Tech Stack
+- Book recommendations based on user interests
+- Summaries and key takeaways for a wide range of Christian literature
+- Author and publication information
+- Search functionality for books by title, author, or topic
+- Supports both **Amharic and English books**
+- Instant Telegram integration via [@ChristianBooksHelperBot](https://t.me/ChristianBooksHelperBot)
+- Runs reliably 24/7 on [PythonAnywhere](https://www.pythonanywhere.com/)
+- Webhook architecture for fast, scalable response (transitioned from polling)
+- User-friendly and extensible codebase
 
-| Component | Technology |
-|------------|-------------|
-| **Language** | Python 3 |
-| **Framework** | python-telegram-bot |
-| **Database** | SQLite |
-| **Deployment** | PythonAnywhere / Render / Railway |
-| **Scraper** | Custom Telegram scraper for collecting book data |
+## Screenshots
 
----
+<!-- Add screenshots or GIFs here if available -->
+<!-- ![screenshot](./screenshots/example.png) -->
+
 ## Getting Started
 
-### 1️⃣ Clone the repository
-```bash
-git clone https://github.com/Daniel-1961/Christain_Book_Bot.git
-cd Christain_Book_Bot
-```
-### 1️⃣ Create Enviroment variable
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows use: venv\Scripts\activate
-```
-### Install dependacies
-```bash
+### Prerequisites
 
-pip install -r requirements.txt
-```
+- Python 3.7 or higher
+- [pip](https://pip.pypa.io/en/stable/installation/) (Python package manager)
+- [PythonAnywhere](https://www.pythonanywhere.com/) account (for deployment, optional)
 
-### 4️⃣ Add environment variables
+### Installation
+
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/Daniel-1961/Christain_Book_Bot.git
+    cd Christain_Book_Bot
+    ```
+2. **(Optional) Create a virtual environment:**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
+3. **Install dependencies:**
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+### Configuration
+
+- Set your environment variables and API keys as needed (see `.env.example` if available).
+- Set up your Telegram Bot by talking to [@BotFather](https://t.me/BotFather) and obtaining a bot token.
+- Configure your webhook URL in Telegram to point to your [PythonAnywhere](https://www.pythonanywhere.com/) deployment or chosen production endpoint.
+
+### Usage
+
+To start the bot locally, run:
+
 ```bash
-
-BOT_TOKEN=your_telegram_bot_token
-ARCHIVE_CHAT_ID=your_private_channel_id
-DB_PATH=data/books.db
-```
-### 5️⃣ Run the bot
- ```bash
- python bot/main.py
+python main.py
 ```
 
-## Project Structure
-```markdown
+For deployment, set the webhook in Telegram and ensure your web endpoint is live on PythonAnywhere.
+
+### Project Structure
+
+```
 Christain_Book_Bot/
-│
-├── bot/
-│   ├── main.py              # Main bot script
-│   ├── utils.py             # Helper functions
-│   ├── db.py                # Database interactions
-│
-├── data/
-│   └── books.db             # SQLite database (not included in repo)
-│
-├── requirements.txt         # Dependencies
-├── .env.example             # Example environment variables
-└── README.md
+├── main.py
+├── requirements.txt
+├── README.md
+├── ...
 ```
-##  Future Improvements
+_Add explanations for important files and directories as needed._
 
-🌍 Add more languages (Amharic and English expansion)
+## Architecture
 
-🧠 Implement semantic search for better keyword matching
+- Uses a **webhook-based** architecture for real-time, efficient updates (no more polling).
+- Designed for fast responses and scalable operation on PythonAnywhere.
+- 24/7 reliability for uninterrupted user experience.
 
-🪶 Improve UI and user experience
+## Contributing
 
-☁️ Move to a 24/7 cloud deployment (Render / Railway)
+Contributions welcome! To get started:
 
-🧾 Add admin dashboard for managing books
+1. Fork this repository
+2. Create your feature branch (`git checkout -b feature/YourFeature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin feature/YourFeature`)
+5. Open a pull request
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+
+## Contact
+
+For questions, suggestions, or feedback, please [open an issue](https://github.com/Daniel-1961/Christain_Book_Bot/issues) or contact [@Daniel-1961](https://github.com/Daniel-1961).
+
+---
+
+_Christian Book Bot — Empowering readers in Amharic and English, 24/7._
