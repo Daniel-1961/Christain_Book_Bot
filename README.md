@@ -21,9 +21,15 @@ Christian Book Bot ([Telegram: @ChristianBooksHelperBot](https://t.me/ChristianB
 - Webhook architecture for fast, scalable response (transitioned from polling)
 - User-friendly and extensible codebase
 
+## Future feature under development
+- Book recommendations based on user interests
+- Summaries and key takeaways for a wide range of Christian literature
+- Author and publication information
+
 ## Screenshots
 
-<!-- Add screenshots or GIFs here if available -->
+<img width="1210" height="465" alt="Screenshot 2026-03-27 151632" src="https://github.com/user-attachments/assets/d64fb201-0869-4f30-803d-34b226c5bd73" />
+
 <!-- ![screenshot](./screenshots/example.png) -->
 
 ## Getting Started
