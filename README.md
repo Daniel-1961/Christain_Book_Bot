@@ -28,6 +28,10 @@ Christian Book Bot ([Telegram: @ChristianBooksHelperBot](https://t.me/ChristianB
 <img width="1210" height="465" alt="Screenshot 2026-03-27 151632" src="https://github.com/user-attachments/assets/d64fb201-0869-4f30-803d-34b226c5bd73" />
 
 <!-- ![screenshot](./screenshots/example.png) -->
+<img width="360" height="734" alt="Screenshot 2026-04-09 233715" src="https://github.com/user-attachments/assets/e6567203-ba22-4104-bc52-836b8016ad5b" />
+<img width="177" height="435" alt="Screenshot 2026-04-09 233557" src="https://github.com/user-attachments/assets/6880b2df-b551-47b5-b063-0e31122129dd" />
+
+
 
 ## Getting Started
 
