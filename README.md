@@ -2,6 +2,7 @@
 
 ![Python](https://img.shields.io/badge/language-python-blue)
 ![Deployed](https://img.shields.io/badge/deployed-PythonAnywhere-orange)
+
 ![Status](https://img.shields.io/badge/status-24/7-green)
 
 ## Overview
