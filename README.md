@@ -9,7 +9,6 @@
 Christian Book Bot ([Telegram: @ChristianBooksHelperBot](https://t.me/ChristianBooksHelperBot)) is an intelligent chatbot designed to help users discover, explore, and learn more about Christian books—now supporting both **Amharic** and **English** titles. The bot provides personalized recommendations, detailed summaries, and additional resources for readers of all backgrounds and interests.
 
 ## Features
-
 - Book recommendations based on user interests
 - Summaries and key takeaways for a wide range of Christian literature
 - Author and publication information
