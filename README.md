@@ -25,7 +25,6 @@ Christian Book Bot ([Telegram: @ChristianBooksHelperBot](https://t.me/ChristianB
 - Author and publication information
 
 ## Screenshots
-
 <img width="1210" height="465" alt="Screenshot 2026-03-27 151632" src="https://github.com/user-attachments/assets/d64fb201-0869-4f30-803d-34b226c5bd73" />
 
 <!-- ![screenshot](./screenshots/example.png) -->
