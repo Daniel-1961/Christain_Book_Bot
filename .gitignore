@@ -5,6 +5,44 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Optional (recommended)
-
+# Virtual environment
 venv/
+
+# Session files
+*.session
+*.session-journal
+
+# Documentation and helper files (temporary)
+*_GUIDE.md
+*_SUMMARY.md
+*_CHECKLIST.md
+*_INSTRUCTIONS.md
+*_FIX*.md
+*DEPLOYMENT*.md
+*UPDATE*.md
+*FEATURE*.md
+*TO_UPLOAD.txt
+*GUIDE.txt
+*TO_*.md
+*READY*.txt
+UPLOAD_*.md
+setup_bot_commands.py
+clean_bot_description.py
+fix_*.py
+quick_fix.py
+nuclear_fix.py
+comprehensive_fix.py
+check_everything.py
+after_token_revoke.py
+HOW_TO_*.md
+RUN_THIS_*.txt
+WHATS_NEW*.md
+FILES_TO_UPLOAD.txt
+URGENT_*.md
+git_push.sh
+
+# Database (if you want to keep it local only)
+# data/books.db
+
+# Logs
+*.log

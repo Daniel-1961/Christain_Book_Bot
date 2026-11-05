@@ -284,6 +284,170 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show help information about using the bot."""
+    language = get_user_language(context) or "English"
+    
+    if language == "Amharic":
+        help_text = (
+            "📖 *የክርስቲያን መጽሐፍት ቦት እንዴት እንደሚጠቀሙ*\n\n"
+            "*ትእዛዞች:*\n"
+            "• `/start` - ቦቱን ጀምር እና ዋና ምናሌውን ይመልከቱ\n"
+            "• `/search <ቁልፍ ቃል>` - መጽሐፍ በርዕስ ወይም ደራሲ ፈልግ\n"
+            "• `/about` - ስለ ቦቱ መረጃ\n"
+            "• `/language` - ቋንቋ ቀይር\n"
+            "• `/donate` - ቦቱን ድጋፍ ያድርጉ\n\n"
+            "*እንዴት እንደሚፈልጉ:*\n"
+            "1️⃣ በምድብ ፈልግ - የመጽሐፍ ምድቦችን ያስሱ\n"
+            "2️⃣ በደራሲ ፈልግ - የደራሲዎችን ዝርዝር ይመልከቱ\n"
+            "3️⃣ መፈለግ - `/search ቁልፍ ቃል` ይተይቡ\n\n"
+            "*ምሳሌዎች:*\n"
+            "`/search John Piper`\n"
+            "`/search ፍቅር`\n"
+            "`/search theology`\n\n"
+            "መጽሐፍ ካገኙ በኋላ፣ እሱን ለማውረድ በእሱ ላይ ጠቅ ያድርጉ!\n\n"
+            "ለተጨማሪ እገዛ /about ይጠቀሙ ወይም አስተዳዳሪውን ያግኙ።"
+        )
+    else:
+        help_text = (
+            "📖 *How to Use Christian Books Bot*\n\n"
+            "*Available Commands:*\n"
+            "• `/start` - Start the bot and see main menu\n"
+            "• `/search <keyword>` - Search for books by title or author\n"
+            "• `/about` - Learn about this bot\n"
+            "• `/language` - Change language preference\n"
+            "• `/donate` - Support the bot\n\n"
+            "*How to Find Books:*\n"
+            "1️⃣ Browse by Category - Explore theological topics\n"
+            "2️⃣ Browse by Author - See books by specific authors\n"
+            "3️⃣ Search - Type `/search <keyword>`\n\n"
+            "*Search Examples:*\n"
+            "`/search John Piper`\n"
+            "`/search grace`\n"
+            "`/search reformation`\n\n"
+            "Once you find a book, click on it to download!\n\n"
+            "For more information, use /about or contact the admin."
+        )
+    
+    await update.message.reply_text(
+        help_text, 
+        parse_mode="Markdown",
+        reply_markup=back_to_main_keyboard()
+    )
+
+
+async def language_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Change language preference."""
+    await update.message.reply_text(
+        "Choose your language / ቋንቋዎን ይምረጡ:",
+        reply_markup=language_selection_keyboard()
+    )
+
+
+async def donate_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show donation options."""
+    language = get_user_language(context) or "English"
+    
+    keyboard = [
+        [InlineKeyboardButton("⭐️ 50 Stars (~$1)", callback_data="stars_50")],
+        [InlineKeyboardButton("⭐️ 100 Stars (~$2)", callback_data="stars_100")],
+        [InlineKeyboardButton("⭐️ 250 Stars (~$5)", callback_data="stars_250")],
+        [InlineKeyboardButton("⬅️ Back to Menu", callback_data="menu_main")]
+    ]
+    
+    if language == "Amharic":
+        text = (
+            "🌟 *ለክርስቲያን መጽሐፍት ቦት ድጋፍ ያድርጉ*\n\n"
+            "ይህ ቦት ነፃ ነው! ከተጠቀሙበትና ከተባረኩበት፣ ሰርቨር ለማስኬድ እና አዳዲስ ባህሪዎችን "
+            "ለመጨመር በቴሌግራም ስታር አነስተኛ ድጋፍ ቢያደርጉልን እናመሰግናለን።\n\n"
+            "🙏 እግዚአብሔር ይባርክዎት!"
+        )
+    else:
+        text = (
+            "🌟 *Support Christian Books Bot*\n\n"
+            "This bot is completely free to use! If it has blessed you and helped "
+            "you grow in your faith, please consider donating a few Telegram Stars "
+            "to keep our server running and support new features.\n\n"
+            "Your support helps us continue providing free access to timeless Christian "
+            "literature for believers around the world.\n\n"
+            "🙏 May God bless you for your generosity!"
+        )
+    
+    await update.message.reply_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show bot statistics (ADMIN ONLY)."""
+    # Check if user is admin
+    from bot.admin import is_admin
+    
+    if not is_admin(update):
+        # For non-admin users, show a message
+        language = get_user_language(context) or "English"
+        if language == "Amharic":
+            await update.message.reply_text(
+                "⚠️ ይህ ትእዛዝ ለአስተዳዳሪዎች ብቻ ነው።",
+                reply_markup=back_to_main_keyboard()
+            )
+        else:
+            await update.message.reply_text(
+                "⚠️ This command is only available to administrators.",
+                reply_markup=back_to_main_keyboard()
+            )
+        return
+    
+    language = get_user_language(context) or "English"
+    
+    # Get statistics
+    total_users = get_total_user_count()
+    monthly_users = get_monthly_user_count()
+    
+    # Get book count
+    conn = _get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM books")
+    total_books = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(DISTINCT category) FROM books WHERE category IS NOT NULL AND category != ''")
+    total_categories = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(DISTINCT author) FROM books WHERE author IS NOT NULL AND author != ''")
+    total_authors = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM books WHERE language='English'")
+    english_books = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM books WHERE language='Amharic'")
+    amharic_books = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    stats_text = (
+        "🔐 *Admin Panel - Bot Statistics*\n\n"
+        "*👥 User Statistics:*\n"
+        f"• Monthly Users: *{monthly_users:,}* 📅\n"
+        f"• Total Users: *{total_users:,}*\n\n"
+        "*📚 Library Statistics:*\n"
+        f"• Total Books: *{total_books:,}*\n"
+        f"• English Books: *{english_books:,}*\n"
+        f"• Amharic Books: *{amharic_books:,}*\n\n"
+        "*📖 Collection:*\n"
+        f"• Categories: *{total_categories}*\n"
+        f"• Authors: *{total_authors}*\n\n"
+        "_Updated in real-time_"
+    )
+    
+    await update.message.reply_text(
+        stats_text,
+        parse_mode="Markdown",
+        reply_markup=back_to_main_keyboard()
+    )
+
+
 
 
 

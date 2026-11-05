@@ -33,7 +33,7 @@ def is_admin(update: Update) -> bool:
 
 
 # -------------------------------
-# 1. Restricted /stats Command
+# 1. Enhanced Admin /stats Command
 # -------------------------------
 async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update):
@@ -42,10 +42,58 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_users = get_total_user_count()
     monthly_users = get_monthly_user_count()
     
+    # Get book statistics
+    import sqlite3
+    BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+    DB_PATH = os.path.join(BASE_DIR, 'data', 'books.db')
+    
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM books")
+    total_books = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM books WHERE language='English'")
+    english_books = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM books WHERE language='Amharic'")
+    amharic_books = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(DISTINCT category) FROM books WHERE category IS NOT NULL AND category != ''")
+    total_categories = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(DISTINCT author) FROM books WHERE author IS NOT NULL AND author != ''")
+    total_authors = cursor.fetchone()[0]
+    
+    # Get recent activity (last 7 days)
+    cursor.execute("""
+        SELECT COUNT(*) FROM users 
+        WHERE joined_at >= datetime('now', '-7 days')
+    """)
+    weekly_users = cursor.fetchone()[0]
+    
+    conn.close()
+    
     stats_text = (
-        "🔐 *Admin Panel | Bot Statistics*\n\n"
-        f"👥 *Total Users:* {total_users}\n"
-        f"📅 *New This Month:* {monthly_users}\n"
+        "🔐 *Admin Panel - Detailed Statistics*\n\n"
+        "*👥 User Metrics:*\n"
+        f"• Total Users: *{total_users:,}*\n"
+        f"• This Month: *{monthly_users:,}* 📅\n"
+        f"• Last 7 Days: *{weekly_users:,}* 📊\n\n"
+        "*📚 Library Metrics:*\n"
+        f"• Total Books: *{total_books:,}*\n"
+        f"• English: *{english_books:,}* 🇬🇧\n"
+        f"• Amharic: *{amharic_books:,}* 🇪🇹\n\n"
+        "*📖 Content Metrics:*\n"
+        f"• Categories: *{total_categories}*\n"
+        f"• Authors: *{total_authors}*\n\n"
+        "*🛠️ Admin Commands:*\n"
+        "• `/broadcast <msg>` - Send message to all users\n"
+        "• `/stats` - View statistics\n"
+        "• `/export` - Export user list\n"
+        "• `/pending` - View pending book submissions\n"
+        "• Send PDF/EPUB - Add book manually\n\n"
+        "_Statistics updated in real-time_"
     )
     
     await update.message.reply_text(stats_text, parse_mode="Markdown")
@@ -106,6 +154,127 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     thread = threading.Thread(target=_broadcast_thread, args=(context.bot, users, message, update.effective_user.id))
     thread.daemon = True
     thread.start()
+
+
+# -------------------------------
+# 3. /export Command - Export Users List
+# -------------------------------
+async def export_users_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Export user list as CSV file"""
+    if not is_admin(update):
+        return
+    
+    await update.message.reply_text("📊 Generating user export...")
+    
+    try:
+        import sqlite3
+        import csv
+        import io
+        
+        BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+        DB_PATH = os.path.join(BASE_DIR, 'data', 'books.db')
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT user_id, username, first_name, joined_at 
+            FROM users 
+            ORDER BY joined_at DESC
+        """)
+        users = cursor.fetchall()
+        conn.close()
+        
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(['User ID', 'Username', 'First Name', 'Joined At'])
+        
+        for user in users:
+            writer.writerow(user)
+        
+        # Send as file
+        csv_data = output.getvalue().encode('utf-8')
+        await update.message.reply_document(
+            document=csv_data,
+            filename=f"users_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            caption=f"📊 *User Export*\n\nTotal Users: {len(users)}\nExported: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            parse_mode="Markdown"
+        )
+        
+    except Exception as e:
+        logger.error(f"Export failed: {e}")
+        await update.message.reply_text(f"❌ Export failed: {str(e)}")
+
+
+# -------------------------------
+# 4. /pending Command - View Pending Book Contributions
+# -------------------------------
+async def pending_books_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """View and manage pending book submissions from users"""
+    if not is_admin(update):
+        return
+    
+    try:
+        import sqlite3
+        
+        BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+        DB_PATH = os.path.join(BASE_DIR, 'data', 'books.db')
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Check if pending_books table exists
+        cursor.execute("""
+            SELECT name FROM sqlite_master 
+            WHERE type='table' AND name='pending_books'
+        """)
+        
+        if not cursor.fetchone():
+            await update.message.reply_text(
+                "ℹ️ No pending submissions table found.\n\n"
+                "User contributions are not enabled yet."
+            )
+            conn.close()
+            return
+        
+        cursor.execute("""
+            SELECT id, user_id, title, author, category, language, submitted_at 
+            FROM pending_books 
+            WHERE status='pending' 
+            ORDER BY submitted_at DESC 
+            LIMIT 10
+        """)
+        pending = cursor.fetchall()
+        conn.close()
+        
+        if not pending:
+            await update.message.reply_text("✅ No pending book submissions!")
+            return
+        
+        # Format pending books
+        text = f"📋 *Pending Book Submissions* ({len(pending)})\n\n"
+        
+        for book in pending:
+            book_id, user_id, title, author, category, language, submitted_at = book
+            text += (
+                f"*ID:* `{book_id}`\n"
+                f"📖 {title}\n"
+                f"👤 {author}\n"
+                f"📚 {category} | {language}\n"
+                f"👥 User: `{user_id}`\n"
+                f"📅 {submitted_at[:10]}\n\n"
+            )
+        
+        text += (
+            "\n*To approve:* `/approve <id>`\n"
+            "*To reject:* `/reject <id>`"
+        )
+        
+        await update.message.reply_text(text, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Failed to get pending books: {e}")
+        await update.message.reply_text(f"❌ Error: {str(e)}")
 
 
 # -------------------------------
